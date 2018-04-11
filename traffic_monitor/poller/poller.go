@@ -20,6 +20,7 @@ package poller
  */
 
 import (
+	"encoding/json"
 	"math/rand"
 	"net/http"
 	"os"
@@ -120,9 +121,12 @@ func (p MonitorConfigPoller) writeConfig(cfg MonitorCfg) {
 	for {
 		select {
 		case p.ConfigChannel <- cfg:
+			js, _ := json.MarshalIndent(&cfg, "", "\t")
+			log.Infof("MY -- writeConfig (write): %v\n", string(js))
 			return // return after successfully writing.
 		case <-p.ConfigChannel:
 			// if the channel buffer was full, read, then loop and try to write again
+			log.Infof("MY -- writeConfig (read): %v\n", cfg)
 		}
 	}
 }
@@ -165,6 +169,7 @@ func (p MonitorConfigPoller) Poll() {
 				log.Warnln("MonitorConfigPoller: skipping this iteration, Session is nil")
 				continue
 			}
+			log.Infoln("MY -- MonitorConfigPoller: tick\n")
 			monitorConfig, err := p.Session.TrafficMonitorConfigMap(p.OpsConfig.CdnName)
 			if err != nil {
 				log.Errorf("MonitorConfigPoller: %s\n %v\n", err, monitorConfig)
@@ -245,13 +250,14 @@ func poller(interval time.Duration, id string, url string, host string, format s
 		case <-tick.C:
 			realInterval := time.Now().Sub(lastTime)
 			if realInterval > interval+(time.Millisecond*100) {
-				log.Debugf("Intended Duration: %v Actual Duration: %v\n", interval, realInterval)
+				//log.Debugf("Intended Duration: %v Actual Duration: %v\n", interval, realInterval)
+				log.Infof("MY -- Intended Duration: %v Actual Duration: %v\n", interval, realInterval)
 			}
 			lastTime = time.Now()
 
 			pollId := atomic.AddUint64(&debugPollNum, 1)
 			pollFinishedChan := make(chan uint64)
-			log.Debugf("poll %v %v start\n", pollId, time.Now())
+			log.Infof("MY -- poll %v %v start\n", pollId, time.Now())
 			go fetcher.Fetch(id, url, host, format, pollId, pollFinishedChan) // TODO persist fetcher, with its own die chan?
 			<-pollFinishedChan
 		case <-die:

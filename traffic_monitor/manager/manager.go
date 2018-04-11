@@ -76,6 +76,7 @@ func Start(opsConfigFile string, cfg config.Config, staticAppData config.StaticA
 	cachesChanged := make(chan struct{})
 	peerStates := peer.NewCRStatesPeersThreadsafe() // each peer's last state is saved in this map
 
+	log.Infof("MY -- StartMonitorConfigManager()")
 	monitorConfig := StartMonitorConfigManager(
 		monitorConfigPoller.ConfigChannel,
 		localStates,
@@ -93,6 +94,7 @@ func Start(opsConfigFile string, cfg config.Config, staticAppData config.StaticA
 
 	combinedStates, combineStateFunc := StartStateCombiner(events, peerStates, localStates, toData)
 
+	log.Infof("MY -- StartPeerManager()")
 	StartPeerManager(
 		peerHandler.ResultChannel,
 		peerStates,
@@ -100,6 +102,7 @@ func Start(opsConfigFile string, cfg config.Config, staticAppData config.StaticA
 		combineStateFunc,
 	)
 
+	log.Infof("MY -- StartStatHistoryManager()")
 	statInfoHistory, statResultHistory, statMaxKbpses, _, lastKbpsStats, dsStats, unpolledCaches, localCacheStatus := StartStatHistoryManager(
 		cacheStatHandler.ResultChan(),
 		localStates,
@@ -113,6 +116,7 @@ func Start(opsConfigFile string, cfg config.Config, staticAppData config.StaticA
 		combineStateFunc,
 	)
 
+	log.Infof("MY -- StartHealthResultManager()")
 	lastHealthDurations, healthHistory := StartHealthResultManager(
 		cacheHealthHandler.ResultChan(),
 		toData,
@@ -126,6 +130,7 @@ func Start(opsConfigFile string, cfg config.Config, staticAppData config.StaticA
 		localCacheStatus,
 	)
 
+	log.Infof("MY -- StartOpsConfigManager()")
 	StartOpsConfigManager(
 		opsConfigFile,
 		toSession,
@@ -154,10 +159,12 @@ func Start(opsConfigFile string, cfg config.Config, staticAppData config.StaticA
 		cfg,
 	)
 
+	log.Infof("MY -- startMonitorConfigFilePoller()")
 	if err := startMonitorConfigFilePoller(trafficMonitorConfigFileName); err != nil {
 		return fmt.Errorf("starting monitor config file poller: %v", err)
 	}
 
+	log.Infof("MY -- healthTickListener()")
 	healthTickListener(cacheHealthPoller.TickChan, healthIteration)
 	return nil
 }
